@@ -1,15 +1,15 @@
 /* @flow */
 
-import type {Manifest} from '../../types.js';
-import type {RegistryNames} from '../../registries/index.js';
-import type PackageRequest from '../../package-request.js';
-import ExoticResolver from './exotic-resolver.js';
-import * as util from '../../util/misc.js';
-import * as fs from '../../util/fs.js';
+import type { Manifest } from "../../types.js";
+import type { RegistryNames } from "../../registries/index.js";
+import type PackageRequest from "../../package-request.js";
+import ExoticResolver from "./exotic-resolver.js";
+import * as util from "../../util/misc.js";
+import * as fs from "../../util/fs.js";
 
-const path = require('path');
+const path = require("path");
 
-export const LINK_PROTOCOL_PREFIX = 'link:';
+export const LINK_PROTOCOL_PREFIX = "link:";
 
 export default class LinkResolver extends ExoticResolver {
   constructor(request: PackageRequest, fragment: string) {
@@ -19,7 +19,7 @@ export default class LinkResolver extends ExoticResolver {
 
   loc: string;
 
-  static protocol = 'link';
+  static protocol = "link";
 
   async resolve(): Promise<Manifest> {
     let loc = this.loc;
@@ -28,17 +28,19 @@ export default class LinkResolver extends ExoticResolver {
     }
 
     const name = path.basename(loc);
-    const registry: RegistryNames = 'npm';
+    const registry: RegistryNames = "npm";
 
-    const manifest: Manifest = !await fs.exists(`${loc}/package.json`) || loc === this.config.lockfileFolder
-      ? {_uid: '', name, version: '0.0.0', _registry: registry}
-      : await this.config.readManifest(loc, this.registry);
+    const manifest: Manifest =
+      !(await fs.exists(`${loc}/package.json`)) ||
+      loc === this.config.lockfileFolder
+        ? { _uid: "", name, version: "0.0.0", _registry: registry }
+        : await this.config.readManifest(loc, this.registry);
 
     manifest._remote = {
-      type: 'link',
+      type: "link",
       registry,
       hash: null,
-      reference: loc,
+      reference: loc
     };
 
     manifest._uid = manifest.version;
