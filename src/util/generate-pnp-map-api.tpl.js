@@ -14,30 +14,31 @@ const {
   readFileSync,
   existsSync,
   realpathSync
-} = require('fs');
+} = require("fs");
 
-const Module = require('module');
-const path = require('path');
-const StringDecoder = require('string_decoder');
+const Module = require("module");
+const path = require("path");
+const StringDecoder = require("string_decoder");
 
 const ignorePattern = $$BLACKLIST ? new RegExp($$BLACKLIST) : null;
 
 const pnpFile = path.resolve(__dirname, __filename);
-const builtinModules =
-    new Set(Module.builtinModules || Object.keys(process.binding('natives')));
+const builtinModules = new Set(
+  Module.builtinModules || Object.keys(process.binding("natives"))
+);
 
 const topLevelLocator = {
-  name : null,
-  reference : null
+  name: null,
+  reference: null
 };
 const blacklistedLocator = {
-  name : NaN,
-  reference : NaN
+  name: NaN,
+  reference: NaN
 };
 
 // Used for compatibility purposes - cf setupCompatibilityLayer
 const patchedModules = [];
-const fallbackLocators = [ topLevelLocator ];
+const fallbackLocators = [topLevelLocator];
 
 // Matches backslashes of Windows paths
 const backwardSlashRegExp = /\\/g;
@@ -51,8 +52,7 @@ const isStrictRegExp = /^\.{0,2}\//;
 
 // Splits a require request into its components, or return null if the request
 // is a file path
-const pathRegExp =
-    /^(?![a-zA-Z]:[\\\/]|\\\\|\.{0,2}(?:\/|$))((?:@[^\/]+\/)?[^\/]+)\/?(.*|)$/;
+const pathRegExp = /^(?![a-zA-Z]:[\\\/]|\\\\|\.{0,2}(?:\/|$))((?:@[^\/]+\/)?[^\/]+)\/?(.*|)$/;
 
 // Keep a reference around ("module" is a common name in this context, so better
 // rename it to something more significant)
@@ -73,7 +73,7 @@ let enableNativeHooks = true;
 
 function makeError(code, message, data = {}) {
   const error = new Error(message);
-  return Object.assign(error, {code, data});
+  return Object.assign(error, { code, data });
 }
 
 /**
@@ -101,11 +101,14 @@ function makeError(code, message, data = {}) {
 // eslint-disable-next-line no-unused-vars
 function blacklistCheck(locator) {
   if (locator === blacklistedLocator) {
-    throw makeError(`BLACKLISTED`, [
-      `A package has been resolved through a blacklisted path - this is usually caused by one of your tools calling`,
-      `"realpath" on the return value of "require.resolve". Since the returned values use symlinks to disambiguate`,
-      `peer dependencies, they must be passed untransformed to "require".`,
-    ].join(` `));
+    throw makeError(
+      `BLACKLISTED`,
+      [
+        `A package has been resolved through a blacklisted path - this is usually caused by one of your tools calling`,
+        `"realpath" on the return value of "require.resolve". Since the returned values use symlinks to disambiguate`,
+        `peer dependencies, they must be passed untransformed to "require".`
+      ].join(` `)
+    );
   }
 
   return locator;
@@ -121,8 +124,10 @@ $$SETUP_STATIC_TABLES();
 function getIssuerModule(parent) {
   let issuer = parent;
 
-  while (issuer && (issuer.id === '[eval]' || issuer.id === '<repl>' ||
-                    !issuer.filename)) {
+  while (
+    issuer &&
+    (issuer.id === "[eval]" || issuer.id === "<repl>" || !issuer.filename)
+  ) {
     issuer = issuer.parent;
   }
 
@@ -139,8 +144,9 @@ function getPackageInformationSafe(packageLocator) {
 
   if (!packageInformation) {
     throw makeError(
-        `INTERNAL`,
-        `Couldn't find a matching entry in the dependency tree for the specified parent (this is probably an internal error)`);
+      `INTERNAL`,
+      `Couldn't find a matching entry in the dependency tree for the specified parent (this is probably an internal error)`
+    );
   }
 
   return packageInformation;
@@ -150,7 +156,7 @@ function getPackageInformationSafe(packageLocator) {
  * Implements the node resolution for folder access and extension selection
  */
 
-function applyNodeExtensionResolution(unqualifiedPath, {extensions}) {
+function applyNodeExtensionResolution(unqualifiedPath, { extensions }) {
   // We use this "infinite while" so that we can restart the process as long as
   // we hit package folders
   while (true) {
@@ -158,8 +164,7 @@ function applyNodeExtensionResolution(unqualifiedPath, {extensions}) {
 
     try {
       stat = statSync(unqualifiedPath);
-    } catch (error) {
-    }
+    } catch (error) {}
 
     // If the file exists and is a file, we can stop right there
 
@@ -183,8 +188,12 @@ function applyNodeExtensionResolution(unqualifiedPath, {extensions}) {
       // pkg-with-peers relative to its ancestors.
 
       if (lstatSync(unqualifiedPath).isSymbolicLink()) {
-        unqualifiedPath = path.normalize(path.resolve(
-            path.dirname(unqualifiedPath), readlinkSync(unqualifiedPath)));
+        unqualifiedPath = path.normalize(
+          path.resolve(
+            path.dirname(unqualifiedPath),
+            readlinkSync(unqualifiedPath)
+          )
+        );
       }
 
       return unqualifiedPath;
@@ -198,9 +207,9 @@ function applyNodeExtensionResolution(unqualifiedPath, {extensions}) {
 
       try {
         pkgJson = JSON.parse(
-            readFileSync(`${unqualifiedPath}/package.json`, 'utf-8'));
-      } catch (error) {
-      }
+          readFileSync(`${unqualifiedPath}/package.json`, "utf-8")
+        );
+      } catch (error) {}
 
       let nextUnqualifiedPath;
 
@@ -212,8 +221,9 @@ function applyNodeExtensionResolution(unqualifiedPath, {extensions}) {
       // location
 
       if (nextUnqualifiedPath && nextUnqualifiedPath !== unqualifiedPath) {
-        const resolution =
-            applyNodeExtensionResolution(nextUnqualifiedPath, {extensions});
+        const resolution = applyNodeExtensionResolution(nextUnqualifiedPath, {
+          extensions
+        });
 
         if (resolution !== null) {
           return resolution;
@@ -224,10 +234,13 @@ function applyNodeExtensionResolution(unqualifiedPath, {extensions}) {
     // Otherwise we check if we find a file that match one of the supported
     // extensions
 
-    const qualifiedPath =
-        extensions
-            .map(extension => { return `${unqualifiedPath}${extension}`; })
-            .find(candidateFile => { return existsSync(candidateFile); });
+    const qualifiedPath = extensions
+      .map(extension => {
+        return `${unqualifiedPath}${extension}`;
+      })
+      .find(candidateFile => {
+        return existsSync(candidateFile);
+      });
 
     if (qualifiedPath) {
       return qualifiedPath;
@@ -237,12 +250,13 @@ function applyNodeExtensionResolution(unqualifiedPath, {extensions}) {
     // use its index
 
     if (stat && stat.isDirectory()) {
-      const indexPath =
-          extensions
-              .map(extension => {
-                return `${unqualifiedPath}/index${extension}`;
-              })
-              .find(candidateFile => { return existsSync(candidateFile); });
+      const indexPath = extensions
+        .map(extension => {
+          return `${unqualifiedPath}/index${extension}`;
+        })
+        .find(candidateFile => {
+          return existsSync(candidateFile);
+        });
 
       if (indexPath) {
         return indexPath;
@@ -279,8 +293,8 @@ function makeFakeModule(path) {
 function normalizePath(fsPath) {
   fsPath = path.normalize(fsPath);
 
-  if (process.platform === 'win32') {
-    fsPath = fsPath.replace(backwardSlashRegExp, '/');
+  if (process.platform === "win32") {
+    fsPath = fsPath.replace(backwardSlashRegExp, "/");
   }
 
   return fsPath;
@@ -291,8 +305,8 @@ function normalizePath(fsPath) {
  */
 
 function callNativeResolution(request, issuer) {
-  if (issuer.endsWith('/')) {
-    issuer += 'internal.js';
+  if (issuer.endsWith("/")) {
+    issuer += "internal.js";
   }
 
   try {
@@ -321,7 +335,7 @@ function callNativeResolution(request, issuer) {
  */
 
 exports.VERSIONS = {
-  std : 1
+  std: 1
 };
 
 /**
@@ -330,8 +344,8 @@ exports.VERSIONS = {
  */
 
 exports.topLevel = {
-  name : null,
-  reference : null
+  name: null,
+  reference: null
 };
 
 /**
@@ -339,8 +353,10 @@ exports.topLevel = {
  * be retrieved.
  */
 
-exports.getPackageInformation = function getPackageInformation(
-    {name, reference}) {
+exports.getPackageInformation = function getPackageInformation({
+  name,
+  reference
+}) {
   const packageInformationStore = packageInformationStores.get(name);
 
   if (!packageInformationStore) {
@@ -374,7 +390,10 @@ exports.getPackageInformation = function getPackageInformation(
  */
 
 exports.resolveToUnqualified = function resolveToUnqualified(
-    request, issuer, {considerBuiltins = true} = {}) {
+  request,
+  issuer,
+  { considerBuiltins = true } = {}
+) {
   // The 'pnpapi' request is reserved and will always return the path to the PnP
   // file, from everywhere
 
@@ -398,14 +417,13 @@ exports.resolveToUnqualified = function resolveToUnqualified(
 
     if (result === false) {
       throw makeError(
-          `BUILTIN_NODE_RESOLUTION_FAIL`,
-          `The builtin node resolution algorithm was unable to resolve the module referenced by "${
-              request}" and requested from "${
-              issuer}" (it didn't go through the pnp resolver because the issuer was explicitely ignored by the regexp "$$BLACKLIST")`,
-          {
-            request,
-            issuer,
-          });
+        `BUILTIN_NODE_RESOLUTION_FAIL`,
+        `The builtin node resolution algorithm was unable to resolve the module referenced by "${request}" and requested from "${issuer}" (it didn't go through the pnp resolver because the issuer was explicitely ignored by the regexp "$$BLACKLIST")`,
+        {
+          request,
+          issuer
+        }
+      );
     }
 
     return result;
@@ -423,8 +441,9 @@ exports.resolveToUnqualified = function resolveToUnqualified(
     } else if (issuer.match(isDirRegExp)) {
       unqualifiedPath = path.normalize(path.resolve(issuer, request));
     } else {
-      unqualifiedPath =
-          path.normalize(path.resolve(path.dirname(issuer), request));
+      unqualifiedPath = path.normalize(
+        path.resolve(path.dirname(issuer), request)
+      );
     }
   }
 
@@ -446,14 +465,13 @@ exports.resolveToUnqualified = function resolveToUnqualified(
 
       if (result === false) {
         throw makeError(
-            `BUILTIN_NODE_RESOLUTION_FAIL`,
-            `The builtin node resolution algorithm was unable to resolve the module referenced by "${
-                request}" and requested from "${
-                issuer}" (it didn't go through the pnp resolver because the issuer doesn't seem to be part of the Yarn-managed dependency tree)`,
-            {
-              request,
-              issuer,
-            });
+          `BUILTIN_NODE_RESOLUTION_FAIL`,
+          `The builtin node resolution algorithm was unable to resolve the module referenced by "${request}" and requested from "${issuer}" (it didn't go through the pnp resolver because the issuer doesn't seem to be part of the Yarn-managed dependency tree)`,
+          {
+            request,
+            issuer
+          }
+        );
       }
 
       return result;
@@ -464,8 +482,9 @@ exports.resolveToUnqualified = function resolveToUnqualified(
     // We obtain the dependency reference in regard to the package that request
     // it
 
-    let dependencyReference =
-        issuerInformation.packageDependencies.get(dependencyName);
+    let dependencyReference = issuerInformation.packageDependencies.get(
+      dependencyName
+    );
 
     // If we can't find it, we check if we can potentially load it from the
     // packages that have been defined as potential fallbacks. It's a bit of a
@@ -475,12 +494,17 @@ exports.resolveToUnqualified = function resolveToUnqualified(
     // themselves.
 
     if (issuerLocator !== topLevelLocator) {
-      for (let t = 0, T = fallbackLocators.length;
-           dependencyReference === undefined && t < T; ++t) {
-        const fallbackInformation =
-            getPackageInformationSafe(fallbackLocators[t]);
-        dependencyReference =
-            fallbackInformation.packageDependencies.get(dependencyName);
+      for (
+        let t = 0, T = fallbackLocators.length;
+        dependencyReference === undefined && t < T;
+        ++t
+      ) {
+        const fallbackInformation = getPackageInformationSafe(
+          fallbackLocators[t]
+        );
+        dependencyReference = fallbackInformation.packageDependencies.get(
+          dependencyName
+        );
       }
     }
 
@@ -491,50 +515,48 @@ exports.resolveToUnqualified = function resolveToUnqualified(
       if (dependencyReference === null) {
         if (issuerLocator === topLevelLocator) {
           throw makeError(
-              `MISSING_PEER_DEPENDENCY`,
-              `You seem to be requiring a peer dependency ("${
-                  dependencyName}"), but it is not installed (which might be because you're the top-level package)`,
-              {request, issuer, dependencyName});
+            `MISSING_PEER_DEPENDENCY`,
+            `You seem to be requiring a peer dependency ("${dependencyName}"), but it is not installed (which might be because you're the top-level package)`,
+            { request, issuer, dependencyName }
+          );
         } else {
           throw makeError(
-              `MISSING_PEER_DEPENDENCY`,
-              `Package "${issuerLocator.name}@${
-                  issuerLocator
-                      .reference}" is trying to access a peer dependency ("${
-                  dependencyName}") that should be provided by its direct ancestor but isn't`,
-              {
-                request,
-                issuer,
-                issuerLocator : Object.assign({}, issuerLocator),
-                dependencyName
-              });
+            `MISSING_PEER_DEPENDENCY`,
+            `Package "${issuerLocator.name}@${issuerLocator.reference}" is trying to access a peer dependency ("${dependencyName}") that should be provided by its direct ancestor but isn't`,
+            {
+              request,
+              issuer,
+              issuerLocator: Object.assign({}, issuerLocator),
+              dependencyName
+            }
+          );
         }
       } else {
         if (issuerLocator === topLevelLocator) {
           throw makeError(
-              `UNDECLARED_DEPENDENCY`,
-              `You cannot require a package ("${
-                  dependencyName}") that is not declared in your dependencies (via "${
-                  issuer}")`,
-              {request, issuer, dependencyName});
+            `UNDECLARED_DEPENDENCY`,
+            `You cannot require a package ("${dependencyName}") that is not declared in your dependencies (via "${issuer}")`,
+            { request, issuer, dependencyName }
+          );
         } else {
-          const candidates =
-              Array.from(issuerInformation.packageDependencies.keys());
+          const candidates = Array.from(
+            issuerInformation.packageDependencies.keys()
+          );
           throw makeError(
-              `UNDECLARED_DEPENDENCY`,
-              `Package "${issuerLocator.name}@${
-                  issuerLocator.reference}" (via "${
-                  issuer}") is trying to require the package "${
-                  dependencyName}" (via "${
-                  request}") without it being listed in its dependencies (${
-                  candidates.join(`, `)})`,
-              {
-                request,
-                issuer,
-                issuerLocator : Object.assign({}, issuerLocator),
-                dependencyName,
-                candidates
-              });
+            `UNDECLARED_DEPENDENCY`,
+            `Package "${issuerLocator.name}@${
+              issuerLocator.reference
+            }" (via "${issuer}") is trying to require the package "${dependencyName}" (via "${request}") without it being listed in its dependencies (${candidates.join(
+              `, `
+            )})`,
+            {
+              request,
+              issuer,
+              issuerLocator: Object.assign({}, issuerLocator),
+              dependencyName,
+              candidates
+            }
+          );
         }
       }
     }
@@ -543,25 +565,27 @@ exports.resolveToUnqualified = function resolveToUnqualified(
     // might not have been installed
 
     const dependencyLocator = {
-      name : dependencyName,
-      reference : dependencyReference
+      name: dependencyName,
+      reference: dependencyReference
     };
-    const dependencyInformation =
-        exports.getPackageInformation(dependencyLocator);
-    const dependencyLocation =
-        path.resolve(__dirname, dependencyInformation.packageLocation);
+    const dependencyInformation = exports.getPackageInformation(
+      dependencyLocator
+    );
+    const dependencyLocation = path.resolve(
+      __dirname,
+      dependencyInformation.packageLocation
+    );
 
     if (!dependencyLocation) {
       throw makeError(
-          `MISSING_DEPENDENCY`,
-          `Package "${dependencyLocator.name}@${
-              dependencyLocator
-                  .reference}" is a valid dependency, but hasn't been installed and thus cannot be required (it might be caused if you install a partial tree, such as on production environments)`,
-          {
-            request,
-            issuer,
-            dependencyLocator : Object.assign({}, dependencyLocator)
-          });
+        `MISSING_DEPENDENCY`,
+        `Package "${dependencyLocator.name}@${dependencyLocator.reference}" is a valid dependency, but hasn't been installed and thus cannot be required (it might be caused if you install a partial tree, such as on production environments)`,
+        {
+          request,
+          issuer,
+          dependencyLocator: Object.assign({}, dependencyLocator)
+        }
+      );
     }
 
     // Now that we know which package we should resolve to, we only have to find
@@ -584,18 +608,21 @@ exports.resolveToUnqualified = function resolveToUnqualified(
  */
 
 exports.resolveUnqualified = function resolveUnqualified(
-    unqualifiedPath, {extensions = Object.keys(Module._extensions)} = {}) {
-  const qualifiedPath =
-      applyNodeExtensionResolution(unqualifiedPath, {extensions});
+  unqualifiedPath,
+  { extensions = Object.keys(Module._extensions) } = {}
+) {
+  const qualifiedPath = applyNodeExtensionResolution(unqualifiedPath, {
+    extensions
+  });
 
   if (qualifiedPath) {
     return path.normalize(qualifiedPath);
   } else {
     throw makeError(
-        `QUALIFIED_PATH_RESOLUTION_FAILED`,
-        `Couldn't find a suitable Node resolution for unqualified path "${
-            unqualifiedPath}"`,
-        {unqualifiedPath});
+      `QUALIFIED_PATH_RESOLUTION_FAILED`,
+      `Couldn't find a suitable Node resolution for unqualified path "${unqualifiedPath}"`,
+      { unqualifiedPath }
+    );
   }
 };
 
@@ -610,12 +637,16 @@ exports.resolveUnqualified = function resolveUnqualified(
  */
 
 exports.resolveRequest = function resolveRequest(
-    request, issuer, {considerBuiltins, extensions} = {}) {
+  request,
+  issuer,
+  { considerBuiltins, extensions } = {}
+) {
   let unqualifiedPath;
 
   try {
-    unqualifiedPath =
-        exports.resolveToUnqualified(request, issuer, {considerBuiltins});
+    unqualifiedPath = exports.resolveToUnqualified(request, issuer, {
+      considerBuiltins
+    });
   } catch (originalError) {
     // If we get a BUILTIN_NODE_RESOLUTION_FAIL error there, it means that we've
     // had to use the builtin node resolution, which usually shouldn't happen.
@@ -629,8 +660,7 @@ exports.resolveRequest = function resolveRequest(
 
       try {
         realIssuer = realpathSync(issuer);
-      } catch (error) {
-      }
+      } catch (error) {}
 
       if (realIssuer) {
         if (issuer.endsWith(`/`)) {
@@ -638,7 +668,9 @@ exports.resolveRequest = function resolveRequest(
         }
 
         try {
-          exports.resolveToUnqualified(request, realIssuer, {considerBuiltins});
+          exports.resolveToUnqualified(request, realIssuer, {
+            considerBuiltins
+          });
         } catch (error) {
           // If an error was thrown, the problem doesn't seem to come from a
           // path not being normalized, so we can just throw the original error
@@ -652,16 +684,14 @@ exports.resolveRequest = function resolveRequest(
         // correctly normalized (ie you should use "node $(realpath script.js)"
         // instead of "node script.js").
         throw makeError(
-            `SYMLINKED_PATH_DETECTED`,
-            `A pnp module ("${
-                request}") has been required from what seems to be a symlinked path ("${
-                issuer}"). This is not possible, you must ensure that your modules are invoked through their fully resolved path on the filesystem (in this case "${
-                realIssuer}").`,
-            {
-              request,
-              issuer,
-              realIssuer,
-            });
+          `SYMLINKED_PATH_DETECTED`,
+          `A pnp module ("${request}") has been required from what seems to be a symlinked path ("${issuer}"). This is not possible, you must ensure that your modules are invoked through their fully resolved path on the filesystem (in this case "${realIssuer}").`,
+          {
+            request,
+            issuer,
+            realIssuer
+          }
+        );
       }
     }
     throw originalError;
@@ -672,10 +702,10 @@ exports.resolveRequest = function resolveRequest(
   }
 
   try {
-    return exports.resolveUnqualified(unqualifiedPath, {extensions});
+    return exports.resolveUnqualified(unqualifiedPath, { extensions });
   } catch (resolutionError) {
-    if (resolutionError.code === 'QUALIFIED_PATH_RESOLUTION_FAILED') {
-      Object.assign(resolutionError.data, {request, issuer});
+    if (resolutionError.code === "QUALIFIED_PATH_RESOLUTION_FAILED") {
+      Object.assign(resolutionError.data, { request, issuer });
     }
     throw resolutionError;
   }
@@ -745,7 +775,7 @@ exports.setup = function setup() {
 
     if (isMain) {
       process.mainModule = module;
-      module.id = '.';
+      module.id = ".";
     }
 
     // Try to load the module, and remove it from the cache if it fails
@@ -765,8 +795,10 @@ exports.setup = function setup() {
 
     for (const [filter, patchFn] of patchedModules) {
       if (filter.test(request)) {
-        module.exports = patchFn(exports.findPackageLocator(parent.filename),
-                                 module.exports);
+        module.exports = patchFn(
+          exports.findPackageLocator(parent.filename),
+          module.exports
+        );
       }
     }
 
@@ -777,21 +809,28 @@ exports.setup = function setup() {
 
   Module._resolveFilename = function(request, parent, isMain, options) {
     if (!enableNativeHooks) {
-      return originalModuleResolveFilename.call(Module, request, parent, isMain,
-                                                options);
+      return originalModuleResolveFilename.call(
+        Module,
+        request,
+        parent,
+        isMain,
+        options
+      );
     }
 
     let issuers;
 
     if (options) {
       const optionNames = new Set(Object.keys(options));
-      optionNames.delete('paths');
+      optionNames.delete("paths");
 
       if (optionNames.size > 0) {
         throw makeError(
-            `UNSUPPORTED`,
-            `Some options passed to require() aren't supported by PnP yet (${
-                Array.from(optionNames).join(', ')})`);
+          `UNSUPPORTED`,
+          `Some options passed to require() aren't supported by PnP yet (${Array.from(
+            optionNames
+          ).join(", ")})`
+        );
       }
 
       if (options.paths) {
@@ -803,7 +842,7 @@ exports.setup = function setup() {
       const issuerModule = getIssuerModule(parent);
       const issuer = issuerModule ? issuerModule.filename : `${process.cwd()}/`;
 
-      issuers = [ issuer ];
+      issuers = [issuer];
     }
 
     let firstError;
@@ -862,7 +901,7 @@ exports.setupCompatibilityLayer = () => {
     const packageInformationStore = packageInformationStores.get(name);
     if (packageInformationStore) {
       for (const reference of packageInformationStore.keys()) {
-        fallbackLocators.push({name, reference});
+        fallbackLocators.push({ name, reference });
       }
     }
   }
@@ -876,7 +915,7 @@ exports.setupCompatibilityLayer = () => {
   patchedModules.push([
     /^\.\/normalize-options\.js$/,
     (issuer, normalizeOptions) => {
-      if (!issuer || issuer.name !== 'resolve') {
+      if (!issuer || issuer.name !== "resolve") {
         return normalizeOptions;
       }
 
@@ -894,13 +933,15 @@ exports.setupCompatibilityLayer = () => {
           const parts = request.match(/^((?:(@[^\/]+)\/)?([^\/]+))/);
 
           // make sure that basedir ends with a slash
-          if (basedir.charAt(basedir.length - 1) !== '/') {
-            basedir = path.join(basedir, '/');
+          if (basedir.charAt(basedir.length - 1) !== "/") {
+            basedir = path.join(basedir, "/");
           }
           // This is guaranteed to return the path to the "package.json" file
           // from the given package
-          const manifestPath =
-              exports.resolveToUnqualified(`${parts[1]}/package.json`, basedir);
+          const manifestPath = exports.resolveToUnqualified(
+            `${parts[1]}/package.json`,
+            basedir
+          );
 
           // The first dirname strips the package.json, the second strips the
           // local named folder
@@ -911,16 +952,16 @@ exports.setupCompatibilityLayer = () => {
             nodeModules = path.dirname(nodeModules);
           }
 
-          return [ nodeModules ];
+          return [nodeModules];
         };
 
         return opts;
       };
-    },
+    }
   ]);
 };
 
-if (module.parent && module.parent.id === 'internal/preload') {
+if (module.parent && module.parent.id === "internal/preload") {
   exports.setupCompatibilityLayer();
 
   exports.setup();
@@ -931,11 +972,12 @@ if (process.mainModule === module) {
 
   const reportError = (code, message, data) => {
     process.stdout.write(
-        `${JSON.stringify([ {code, message, data}, null ])}\n`);
+      `${JSON.stringify([{ code, message, data }, null])}\n`
+    );
   };
 
   const reportSuccess = resolution => {
-    process.stdout.write(`${JSON.stringify([ null, resolution ])}\n`);
+    process.stdout.write(`${JSON.stringify([null, resolution])}\n`);
   };
 
   const processResolution = (request, issuer) => {
@@ -958,20 +1000,21 @@ if (process.mainModule === module) {
   if (process.argv.length > 2) {
     if (process.argv.length !== 4) {
       process.stderr.write(
-          `Usage: ${process.argv[0]} ${process.argv[1]} <request> <issuer>\n`);
+        `Usage: ${process.argv[0]} ${process.argv[1]} <request> <issuer>\n`
+      );
       process.exitCode = 64; /* EX_USAGE */
     } else {
       processResolution(process.argv[2], process.argv[3]);
     }
   } else {
-    let buffer = '';
+    let buffer = "";
     const decoder = new StringDecoder.StringDecoder();
 
-    process.stdin.on('data', chunk => {
+    process.stdin.on("data", chunk => {
       buffer += decoder.write(chunk);
 
       do {
-        const index = buffer.indexOf('\n');
+        const index = buffer.indexOf("\n");
         if (index === -1) {
           break;
         }
