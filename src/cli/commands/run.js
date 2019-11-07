@@ -25,7 +25,8 @@ function toObject(input: Map<string, string>): Object {
   return output;
 }
 
-export async function getBinEntries(config: Config): Promise<Map<string, string>> {
+export async function getBinEntries(config: Config):
+    Promise<Map<string, string>> {
   const binFolders = new Set();
   const binEntries = new Map();
 
@@ -37,13 +38,16 @@ export async function getBinEntries(config: Config): Promise<Map<string, string>
 
   // Same thing, but for the pnp dependencies, located inside the cache
   if (await fs.exists(`${config.lockfileFolder}/${constants.PNP_FILENAME}`)) {
-    const pnpApi = dynamicRequire(`${config.lockfileFolder}/${constants.PNP_FILENAME}`);
+    const pnpApi =
+        dynamicRequire(`${config.lockfileFolder}/${constants.PNP_FILENAME}`);
 
     const packageLocator = pnpApi.findPackageLocator(`${config.cwd}/`);
     const packageInformation = pnpApi.getPackageInformation(packageLocator);
 
-    for (const [name, reference] of packageInformation.packageDependencies.entries()) {
-      const dependencyInformation = pnpApi.getPackageInformation({name, reference});
+    for (const [name, reference] of packageInformation.packageDependencies
+             .entries()) {
+      const dependencyInformation =
+          pnpApi.getPackageInformation({name, reference});
 
       if (dependencyInformation.packageLocation) {
         binFolders.add(`${dependencyInformation.packageLocation}/.bin`);
@@ -51,7 +55,8 @@ export async function getBinEntries(config: Config): Promise<Map<string, string>
     }
   }
 
-  // Build up a list of possible scripts by exploring the folders marked for analysis
+  // Build up a list of possible scripts by exploring the folders marked for
+  // analysis
   for (const binFolder of binFolders) {
     if (await fs.exists(binFolder)) {
       for (const name of await fs.readdir(binFolder)) {
@@ -71,7 +76,8 @@ export function hasWrapper(commander: Object, args: Array<string>): boolean {
   return true;
 }
 
-export async function run(config: Config, reporter: Reporter, flags: Object, args: Array<string>): Promise<void> {
+export async function run(config: Config, reporter: Reporter, flags: Object,
+                          args: Array<string>): Promise<void> {
   const pkg = await config.readManifest(config.cwd);
 
   const binCommands = new Set();
@@ -93,8 +99,9 @@ export async function run(config: Config, reporter: Reporter, flags: Object, arg
     }
   }
 
-  function runCommand([action, ...args]): Promise<void> {
-    return callThroughHook('runScript', () => realRunCommand(action, args), {action, args});
+  function runCommand([ action, ...args ]): Promise<void> {
+    return callThroughHook('runScript', () => realRunCommand(action, args),
+                           {action, args});
   }
 
   async function realRunCommand(action, args): Promise<void> {
@@ -104,48 +111,55 @@ export async function run(config: Config, reporter: Reporter, flags: Object, arg
     if (pkgScripts && action in pkgScripts) {
       const preAction = `pre${action}`;
       if (preAction in pkgScripts) {
-        cmds.push([preAction, pkgScripts[preAction]]);
+        cmds.push([ preAction, pkgScripts[preAction] ]);
       }
 
       const script = scripts.get(action);
       invariant(script, 'Script must exist');
-      cmds.push([action, script]);
+      cmds.push([ action, script ]);
 
       const postAction = `post${action}`;
       if (postAction in pkgScripts) {
-        cmds.push([postAction, pkgScripts[postAction]]);
+        cmds.push([ postAction, pkgScripts[postAction] ]);
       }
     } else if (scripts.has(action)) {
       const script = scripts.get(action);
       invariant(script, 'Script must exist');
-      cmds.push([action, script]);
+      cmds.push([ action, script ]);
     }
 
     if (cmds.length) {
-      const ignoreEngines = !!(flags.ignoreEngines || config.getOption('ignore-engines'));
+      const ignoreEngines =
+          !!(flags.ignoreEngines || config.getOption('ignore-engines'));
       try {
         await checkCompatibility(pkg, config, ignoreEngines);
       } catch (err) {
-        throw err instanceof MessageError ? new MessageError(reporter.lang('cannotRunWithIncompatibleEnv')) : err;
+        throw err instanceof MessageError
+            ? new MessageError(reporter.lang('cannotRunWithIncompatibleEnv'))
+            : err;
       }
 
       // Disable wrapper in executed commands
       process.env.YARN_WRAP_OUTPUT = 'false';
       for (const [stage, cmd] of cmds) {
-        // only tack on trailing arguments for default script, ignore for pre and post - #1595
-        const cmdWithArgs = stage === action ? sh`${unquoted(cmd)} ${args}` : cmd;
+        // only tack on trailing arguments for default script, ignore for pre
+        // and post - #1595
+        const cmdWithArgs =
+            stage === action ? sh`${unquoted(cmd)} ${args}` : cmd;
         const customShell = config.getOption('script-shell');
         await execCommand({
           stage,
           config,
-          cmd: cmdWithArgs,
-          cwd: flags.into || config.cwd,
-          isInteractive: true,
-          customShell: customShell ? String(customShell) : undefined,
+          cmd : cmdWithArgs,
+          cwd : flags.into || config.cwd,
+          isInteractive : true,
+          customShell : customShell ? String(customShell) : undefined,
         });
       }
     } else if (action === 'env') {
-      reporter.log(JSON.stringify(await makeEnv('env', config.cwd, config), null, 2), {force: true});
+      reporter.log(
+          JSON.stringify(await makeEnv('env', config.cwd, config), null, 2),
+          {force : true});
     } else {
       let suggestion;
 
@@ -167,7 +181,8 @@ export async function run(config: Config, reporter: Reporter, flags: Object, arg
   // list possible scripts if none specified
   if (args.length === 0) {
     if (binCommands.size > 0) {
-      reporter.info(`${reporter.lang('binCommands') + Array.from(binCommands).join(', ')}`);
+      reporter.info(`${
+          reporter.lang('binCommands') + Array.from(binCommands).join(', ')}`);
     } else {
       reporter.error(reporter.lang('noBinAvailable'));
     }
@@ -182,14 +197,14 @@ export async function run(config: Config, reporter: Reporter, flags: Object, arg
 
     if (pkgCommands.size > 0) {
       reporter.info(`${reporter.lang('possibleCommands')}`);
-      reporter.list('possibleCommands', Array.from(pkgCommands), toObject(printedCommands));
+      reporter.list('possibleCommands', Array.from(pkgCommands),
+                    toObject(printedCommands));
       if (!flags.nonInteractive) {
-        await reporter
-          .question(reporter.lang('commandQuestion'))
-          .then(
-            answer => runCommand(answer.trim().split(' ')),
-            () => reporter.error(reporter.lang('commandNotSpecified')),
-          );
+        await reporter.question(reporter.lang('commandQuestion'))
+            .then(
+                answer => runCommand(answer.trim().split(' ')),
+                () => reporter.error(reporter.lang('commandNotSpecified')),
+            );
       }
     } else {
       reporter.error(reporter.lang('noScriptsAvailable'));
